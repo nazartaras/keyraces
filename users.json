@@ -6,5 +6,9 @@
     {
         "login" : "annihilator",
         "password" : "asdfgh"
+    },
+    {
+        "login" : "annihilator1",
+        "password" : "asdfgh"
     }
 ]
