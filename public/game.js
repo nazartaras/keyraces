@@ -10,16 +10,16 @@ window.onload = () => {
     let currMapLength = 0;
     let timerTime;
     let timerId;
+    let progressBarsColors = ["red","blue","orange","green","yellow"];
     const token = localStorage.getItem('jwt');
     window.addEventListener('keypress', ev => {
         console.log(ev.keyCode);
-        socket.emit('keypressed', { keycode: ev.keyCode, charNum: progress, currTextId: currText });
+        socket.emit('keypressed', { keycode: ev.keyCode, charNum: progress, currTextId: currText, token: token});
     })
 
     socket.on('start', ev => {
         restoreAll();
         console.log('start');
-        
         socket.emit('add-player');
         fetch('/game', {
             method: "POST",
@@ -36,9 +36,9 @@ window.onload = () => {
                 clearTimeout();
                 timerTime = body.currMap.time;
                 waiting_timer.style.display = 'block';
-                timerId = setInterval(()=>{
+                timerId = setInterval(() => {
                     timer(1)
-                },1000);
+                }, 1000);
             })
         })
 
@@ -64,11 +64,17 @@ window.onload = () => {
     })
     socket.on('someone-progress-changed', payload => {
         document.getElementById(payload.token).value = payload.newProgress;
+        for(let i=0; i<resultDiv.children.length; i++){
+            if(resultDiv.children[i].value<payload.newProgress){
+                resultDiv.insertBefore(document.getElementById(payload.token), resultDiv.children[i]);
+            }
+        }
+
     })
-    socket.on('someone-finished-race', ev=>{
+    socket.on('someone-finished-race', ev => {
         console.log('finished');
     })
-    socket.on('race-finished', payload=>{
+    socket.on('race-finished', payload => {
         hideAll();
     })
     socket.on('someone-new-connected', payload => {
@@ -76,67 +82,76 @@ window.onload = () => {
         newProgBar.value = 0;
         newProgBar.max = currMapLength;
         newProgBar.id = payload.token;
+        newProgBar.style.display='block';
+        newProgBar.style.margin='10px';
+        newProgBar.style.background = progressBarsColors[payload.color];
         resultDiv.appendChild(newProgBar);
     })
     socket.on('incorrect', ev => { })
     socket.on('transfer', ev => {
         clearInterval(timerId);
         console.log('emmited transfer');
-        socket.emit('to-room-race');
+        socket.emit('to-room-race', { token : token });
     })
-    socket.on('start-timer', payload=>{
-       waiting_timer.style.display='block';
-       timerTime = payload.time;
-       timerId = setInterval(()=>{
-        timer(payload.status)
-    },1000);
+    socket.on('start-timer', payload => {
+        waiting_timer.style.display = 'block';
+        timerTime = payload.time;
+        timerId = setInterval(() => {
+            timer(payload.status)
+        }, 1000);
     })
-    function hideAll(){
+    socket.on('clear-interval', payload=>{
+        clearInterval(timerId);
+    })
+    socket.on('someone-disconnected', payload => {
+        console.log("Disconnect");
+    })
+    function hideAll() {
         entered.innerHTML = '';
-        textField.innerHTML='';
+        textField.innerHTML = '';
         entered.style.display = 'none';
         textField.style.display = 'none';
 
     }
-    function restoreAll(){
-        entered.style.display='inline-block';
-        textField.style.display='inline-block';
-        waiting_timer.style.display='none';
+    function restoreAll() {
+        entered.style.display = 'inline-block';
+        textField.style.display = 'inline-block';
+        waiting_timer.style.display = 'none';
         progress = 0;
         while (resultDiv.firstChild) {
             resultDiv.removeChild(resultDiv.firstChild);
         }
     }
 
-    function timer (timerType){
-        if(timerType===1||timerType==3)
-        document.getElementById('timer-text').innerHTML='Time to the end of current race ::';
-        if(timerType===2)
-        document.getElementById('timer-text').innerHTML='Time to the next ::';
+    function timer(timerType) {
+        if (timerType === 1 || timerType == 3)
+            document.getElementById('timer-text').innerHTML = 'Time to the end of current race ::';
+        if (timerType === 2)
+            document.getElementById('timer-text').innerHTML = 'Time to the next ::';
         console.log("Time : " + timerTime);
-        let minutesHtml =  document.getElementById('minutes');
+        let minutesHtml = document.getElementById('minutes');
         let secondsHtml = document.getElementById('seconds');
         let seconds = timerTime % 60;
-        let minutes = (timerTime-seconds)/60;
-        if(minutes<1){
+        let minutes = (timerTime - seconds) / 60;
+        if (minutes < 1) {
             minutesHtml.style.display = 'none';
         }
-        else{
+        else {
             minutesHtml.style.display = 'inline-block';
             minutesHtml.innerHTML = minutes;
         }
         secondsHtml.innerHTML = seconds;
-        timerTime -=1;
-        if(timerTime===-1&&timerType==1){
+        timerTime -= 1;
+        if (timerTime === -1 && timerType == 1) {
             clearInterval(timerId);
             waiting_timer.style.display = 'none';
             socket.emit('player-finished', { token: token });
         }
-        if(timerTime===-1&&timerType==2){
+        if (timerTime === -1 && timerType == 2) {
             clearInterval(timerId);
             waiting_timer.style.display = 'none';
             socket.emit('start-next', { token: token });
         }
-    
+
     }
 }
