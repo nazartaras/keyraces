@@ -10,7 +10,7 @@ const users = require('./users.json');
 const maps = require('./maps.json');
 
 require("./passport.config.js");
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname,"public")));
 app.use(passport.initialize());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -122,14 +122,17 @@ io.on('connection', function (socket) {
     socket.on('someone-connected', payload => {
         let user = jwt.verify(payload.token, 'someSecret')
         if (user) {
-        socket.broadcast.to('race').emit('someone-new-connected', { token: payload.token });
-        socket.emit('someone-new-connected', { token: payload.token});
+        console.log('user     '+ jwt.decode(payload.token).login);
+        let loginUs = jwt.decode(payload.token).login;
+        socket.broadcast.to('race').emit('someone-new-connected', { token: payload.token, userLogin: loginUs});
+        socket.emit('someone-new-connected', { token: payload.token, userLogin: loginUs});
     }
 })
     socket.on('progress-change', payload => {
         let user = jwt.verify(payload.token, 'someSecret')
         if (user) {
         socket.broadcast.to('race').emit('someone-progress-changed', { token: payload.token, newProgress: payload.currProgress });
+        socket.emit('someone-progress-changed', { token: payload.token, newProgress: payload.currProgress });
     }
     })
     socket.on('keypressed', payload => {

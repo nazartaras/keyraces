@@ -55,17 +55,17 @@ window.onload = () => {
         a.splice(0, 1);
         textField.innerHTML = a.join('');
         entered.innerHTML = b;
-        progress += 1;
-        document.getElementById(token).value = progress;
+        progress += 1; 
+        document.getElementById(token).children[1].value = progress;
         socket.emit('progress-change', { currProgress: progress, token: token });
         if (progress == a.length + b.length) {
             socket.emit('player-finished', { token: token });
         }
     })
     socket.on('someone-progress-changed', payload => {
-        document.getElementById(payload.token).value = payload.newProgress;
+        document.getElementById(payload.token).lastChild.value = payload.newProgress;
         for(let i=0; i<resultDiv.children.length; i++){
-            if(resultDiv.children[i].value<payload.newProgress){
+            if(resultDiv.children[i].lastChild.value<payload.newProgress){
                 resultDiv.insertBefore(document.getElementById(payload.token), resultDiv.children[i]);
             }
         }
@@ -78,14 +78,19 @@ window.onload = () => {
         hideAll();
     })
     socket.on('someone-new-connected', payload => {
+        const newProgWrp = document.createElement('div');
+        const newProgLabel = document.createElement('span');
         const newProgBar = document.createElement('progress');
+        newProgLabel.innerHTML= payload.userLogin;
         newProgBar.value = 0;
         newProgBar.max = currMapLength;
-        newProgBar.id = payload.token;
+        newProgWrp.id = payload.token;
         newProgBar.style.display='block';
         newProgBar.style.margin='10px';
         newProgBar.style.background = progressBarsColors[payload.color];
-        resultDiv.appendChild(newProgBar);
+        newProgWrp.appendChild(newProgLabel);
+        newProgWrp.appendChild(newProgBar);
+        resultDiv.appendChild(newProgWrp);
     })
     socket.on('incorrect', ev => { })
     socket.on('transfer', ev => {
