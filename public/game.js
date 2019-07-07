@@ -10,7 +10,7 @@ window.onload = () => {
     let currMapLength = 0;
     let timerTime;
     let timerId;
-    let progressBarsColors = ["red","blue","orange","green","yellow"];
+    
     const token = localStorage.getItem('jwt');
     window.addEventListener('keypress', ev => {
         console.log(ev.keyCode);
@@ -32,7 +32,7 @@ window.onload = () => {
                 socket.emit('someone-connected', { token: token });
                 textField.innerHTML = body.currMap.map;
                 currText = body.textId;
-                currMapLength = body.currMap.map.length - 1;
+                currMapLength = body.currMap.map.length;
                 clearTimeout();
                 timerTime = body.currMap.time;
                 waiting_timer.style.display = 'block';
@@ -87,7 +87,6 @@ window.onload = () => {
         newProgWrp.id = payload.token;
         newProgBar.style.display='block';
         newProgBar.style.margin='10px';
-        newProgBar.style.background = progressBarsColors[payload.color];
         newProgWrp.appendChild(newProgLabel);
         newProgWrp.appendChild(newProgBar);
         resultDiv.appendChild(newProgWrp);

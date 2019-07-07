@@ -1,17 +1,17 @@
 [
     {
         "id" : 0,
-        "map" : "1IpsumLorem IpsumLorem IpsumLorem Ipsum", 
-        "time": 40
+        "map" : "1IpsumLoremIpsumLoremIpsumLoremIpsum", 
+        "time": 60
     },
     {
         "id" : 1,
-        "map" : "2IpsumLorem IpsumLorem Ipsum",
+        "map" : "2IpsumLoremIpsumLoremIpsum",
         "time": 40
     },
     {
         "id" : 2,
-        "map" : "3IpsumLorem Ipsum",
-        "time": 40
+        "map" : "3IpsumLoremIpsum",
+        "time": 20
     }
 ]
