@@ -20,6 +20,8 @@ let status = 0;
 let players = 0;
 let waiters = 0;
 let mapId = getRandomInt(3);
+let timeStart;
+let timeEnd;
 app.get('/', function (req, res) {
     res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -44,7 +46,7 @@ app.post('/login', function (req, res) {
 app.post('/game', passport.authenticate('jwt', {session: false}), function (req, res) {
     console.log(req.headers.authorization);
     const text = maps.find(map => map.id === mapId);
-    res.json({ currMap: text, textId: mapId });
+    res.json({ currMap: text, textId: mapId});
 });
 
 
@@ -53,11 +55,17 @@ io.on('connection', function (socket) {
         status = 1;
         console.log('joined race');
         socket.join('race');
+        timeStart = new Date;
+        const textTime = maps.find(map => map.id === mapId);
+        timeEnd=Date.parse(timeStart)+(textTime.time*1000);
         socket.emit('start');
     } else {
         console.log('joined waiting');
         socket.join('waiting');
+        const currTime = new Date;
+        let timerTime = timeEnd-Date.parse(currTime);
         socket.emit('wait');
+        socket.emit('start-timer', {time: Math.ceil(timerTime/1000), status: 3})
         waiters += 1;
 
     }
@@ -71,15 +79,20 @@ io.on('connection', function (socket) {
         if (players == 0) {
             socket.broadcast.to('race').emit('race-finished');
             socket.emit('race-finished');
-            status = 0;
             mapId = getRandomInt(3);
             console.log('mapId:     '+ mapId);
             socket.broadcast.to('waiting').emit('transfer');
-            let breakR = setTimeout(() => {
-                socket.broadcast.to('race').emit('start');
-                socket.emit('start');
-            }, 20000);
+            timeStart = new Date;
+            const textTime = maps.find(map => map.id === mapId);
+            timeEnd=Date.parse(timeStart)+(textTime.time*1000)+ 11000;
+            socket.emit('start-timer', {time : 10 , status: 2});
+            socket.broadcast.to('waiting').emit('start-timer', {time : 10 , status: 2});
+            socket.broadcast.to('race').emit('start-timer', {time : 10 , status: 2});
         }
+    })
+    socket.on('start-next', payload=>{
+        socket.emit('start');
+       
     })
     socket.on('to-room-race', ev => {
         socket.leave('waiting');
@@ -105,6 +118,7 @@ io.on('connection', function (socket) {
             socket.emit('incorrect', { charNum: payload.charNum });
         }
     });
+
 
 });
 

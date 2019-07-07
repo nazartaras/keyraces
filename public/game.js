@@ -8,6 +8,9 @@ window.onload = () => {
     let progress = 0;
     let currText = 0;
     let currMapLength = 0;
+    let timerTime;
+    let timerId;
+    const token = localStorage.getItem('jwt');
     window.addEventListener('keypress', ev => {
         console.log(ev.keyCode);
         socket.emit('keypressed', { keycode: ev.keyCode, charNum: progress, currTextId: currText });
@@ -16,7 +19,7 @@ window.onload = () => {
     socket.on('start', ev => {
         restoreAll();
         console.log('start');
-        const token = localStorage.getItem('jwt');
+        
         socket.emit('add-player');
         fetch('/game', {
             method: "POST",
@@ -30,6 +33,12 @@ window.onload = () => {
                 textField.innerHTML = body.currMap.map;
                 currText = body.textId;
                 currMapLength = body.currMap.map.length - 1;
+                clearTimeout();
+                timerTime = body.currMap.time;
+                waiting_timer.style.display = 'block';
+                timerId = setInterval(()=>{
+                    timer(1)
+                },1000);
             })
         })
 
@@ -37,7 +46,7 @@ window.onload = () => {
     socket.on('wait', ev => {
         textField.style.display = "none";
         waiting_timer.style.display = "block";
-        waiting_timer.innerHTML = "999999999"
+
     })
     socket.on('correct', ev => {
         let a = textField.innerHTML.split('');
@@ -47,10 +56,10 @@ window.onload = () => {
         textField.innerHTML = a.join('');
         entered.innerHTML = b;
         progress += 1;
-        document.getElementById(localStorage.getItem('jwt')).value = progress;
-        socket.emit('progress-change', { currProgress: progress, token: localStorage.getItem('jwt') });
+        document.getElementById(token).value = progress;
+        socket.emit('progress-change', { currProgress: progress, token: token });
         if (progress == a.length + b.length) {
-            socket.emit('player-finished', { token: localStorage.getItem('jwt') });
+            socket.emit('player-finished', { token: token });
         }
     })
     socket.on('someone-progress-changed', payload => {
@@ -71,8 +80,16 @@ window.onload = () => {
     })
     socket.on('incorrect', ev => { })
     socket.on('transfer', ev => {
+        clearInterval(timerId);
         console.log('emmited transfer');
         socket.emit('to-room-race');
+    })
+    socket.on('start-timer', payload=>{
+       waiting_timer.style.display='block';
+       timerTime = payload.time;
+       timerId = setInterval(()=>{
+        timer(payload.status)
+    },1000);
     })
     function hideAll(){
         entered.innerHTML = '';
@@ -89,5 +106,37 @@ window.onload = () => {
         while (resultDiv.firstChild) {
             resultDiv.removeChild(resultDiv.firstChild);
         }
+    }
+
+    function timer (timerType){
+        if(timerType===1||timerType==3)
+        document.getElementById('timer-text').innerHTML='Time to the end of current race ::';
+        if(timerType===2)
+        document.getElementById('timer-text').innerHTML='Time to the next ::';
+        console.log("Time : " + timerTime);
+        let minutesHtml =  document.getElementById('minutes');
+        let secondsHtml = document.getElementById('seconds');
+        let seconds = timerTime % 60;
+        let minutes = (timerTime-seconds)/60;
+        if(minutes<1){
+            minutesHtml.style.display = 'none';
+        }
+        else{
+            minutesHtml.style.display = 'inline-block';
+            minutesHtml.innerHTML = minutes;
+        }
+        secondsHtml.innerHTML = seconds;
+        timerTime -=1;
+        if(timerTime===-1&&timerType==1){
+            clearInterval(timerId);
+            waiting_timer.style.display = 'none';
+            socket.emit('player-finished', { token: token });
+        }
+        if(timerTime===-1&&timerType==2){
+            clearInterval(timerId);
+            waiting_timer.style.display = 'none';
+            socket.emit('start-next', { token: token });
+        }
+    
     }
 }
